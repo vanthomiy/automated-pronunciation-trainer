@@ -25,6 +25,17 @@ Requirements
 - Set up your Open AI API key.
 - Run the application and start practicing your pronunciation!
 
+## Possible Improvements
+There are several ways in which the automated pronunciation trainer project could be improved:
+
+- Generating texts on the fly: The current version of the trainer relies on a pre-existing set of texts for users to practice their pronunciation. Adding functionality to generate new texts on the fly, based on user preferences or other parameters, would enhance the user experience and keep them engaged.
+
+- Using a real database: The current version of the trainer does not use a real database, which may limit its scalability and performance. Implementing a real database solution, such as PostgreSQL or MongoDB, would provide a more robust and efficient system.
+
+- Increase/Decrease noise: The trainer currently offers the ability to add noise to the recording to make it harder, but it doesn't allow for the ability to increase or decrease the noise. Adding this functionality would provide more flexibility for users and allow them to tailor their experience to their skill level.
+
+Overall, these improvements would enhance the usability and functionality of the automated pronunciation trainer and provide a more comprehensive and engaging learning experience for users.
+
 ## Contributing
 - Contributions to this project are welcome. If you would like to contribute, please follow these steps:
 
