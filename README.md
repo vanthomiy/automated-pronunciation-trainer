@@ -34,6 +34,8 @@ There are several ways in which the automated pronunciation trainer project coul
 
 - Increase/Decrease noise: The trainer currently offers the ability to add noise to the recording to make it harder, but it doesn't allow for the ability to increase or decrease the noise. Adding this functionality would provide more flexibility for users and allow them to tailor their experience to their skill level.
 
+- Adding Single Sign-On (SSO) for authentication is another potential improvement for the automated pronunciation trainer project. SSO allows users to authenticate themselves to multiple applications and systems with a single set of credentials.
+
 Overall, these improvements would enhance the usability and functionality of the automated pronunciation trainer and provide a more comprehensive and engaging learning experience for users.
 
 ## Contributing
