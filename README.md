@@ -16,14 +16,33 @@ Requirements
 ## To use the automated pronunciation trainer, you will need the following:
 - Blazor
 - Flask
-- Open AI API Key
 - Getting Started
-## To get started, follow these steps:
+## To get started with the automated pronunciation trainer project, follow these steps:
 
-- Clone the repository to your local machine.
-- Install the required libraries (Blazor, Flask, etc.).
-- Set up your Open AI API key.
-- Run the application and start practicing your pronunciation!
+1. Clone the repository to your local machine.
+
+Install the required dependencies for the Flask backend. You can do this by running the following command in the terminal from the root directory of the project:
+
+```
+pip install -r requirements.txt
+```
+
+2. Run the Flask backend. To do this, navigate to the backend folder in the terminal and run the following command:
+
+```
+python app.py
+```
+3. Install the required dependencies for the Blazor UI. You can do this by running the following command in the terminal from the root directory of the project:
+```
+dotnet restore
+```
+4. Run the Blazor UI. To do this, navigate to the frontend folder in the terminal and run the following command:
+```
+dotnet run
+```
+5. Access the trainer in your web browser by navigating to http://localhost:5000.
+
+These steps should get you up and running with the automated pronunciation trainer project. If you run into any issues or errors, refer to the documentation or raise an issue in the project's repository.
 
 ## Possible Improvements
 There are several ways in which the automated pronunciation trainer project could be improved:
