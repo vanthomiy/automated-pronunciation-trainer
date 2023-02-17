@@ -1,0 +1,61 @@
+﻿@using MudBlazor;
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="@MyCustomTheme" @ref="_mudThemeProvider" @bind-IsDarkMode="@_isDarkMode" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar>
+        <!--MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" /!-->
+        Automated Pronouncing Trainer
+        <MudToggleIconButton @bind-Toggled="@_isDarkMode"
+                             Icon="@Icons.Material.Filled.DarkMode" Color="@Color.Dark" Title="Dark Mode"
+                             ToggledIcon="@Icons.Material.Filled.LightMode" ToggledColor="@Color.Default" ToggledTitle="Light Mode" />
+    </MudAppBar>
+    <MudDrawer @bind-Open="@_drawerOpen">
+        <NavMenu/>
+    </MudDrawer>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+@code {
+    bool _drawerOpen = false;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private bool _isDarkMode;
+    private MudThemeProvider? _mudThemeProvider;
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _mudThemeProvider != null)
+        {
+            _isDarkMode = await _mudThemeProvider.GetSystemPreference();
+            StateHasChanged();
+        }
+    }
+
+
+    MudTheme MyCustomTheme = new MudTheme()
+        {
+            Typography = new Typography()
+            {
+                Default = new Default()
+                {
+                    FontFamily = new[] { "Space Grotesk", "Brlnsr", "Helvetica", "Arial", "sans-serif" }
+                }
+            },
+            Palette = new Palette()
+            {
+                Primary = Colors.Red.Default,
+                Secondary = Colors.Green.Accent4,
+                AppbarBackground = Colors.DeepOrange.Default,
+            },
+        };
+}

@@ -1,0 +1,362 @@
+﻿@page "/"
+@using AutomatedPronouncingTrainer.Model;
+@using AutomatedPronouncingTrainer.Service;
+@using MudBlazor
+@using MudBlazor.Utilities;
+@inject SpeechService Service
+@inject UserService User
+@inject ISnackbar Snackbar
+
+<MudPaper Class="overflow-hidden d-flex flex-column bg-transparent gap-4" Width="100%" Height="@CalculateHeight(100)" Elevation="0">
+    <MudGrid Class="pa-4">
+        <MudItem xs="12" Class="d-flex flex-row">
+            <MudTextField Disabled="@(User.IsLoggedIn)" T="string" Class="ma-2" Label="Username" @bind-Text="User.UserName"/>
+            @if(User != null && User.IsLoggedIn){
+                <MudButton Class="ma-2" Disabled="@(User.UserName == "")" Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => Login(false))">Logout</MudButton>
+            }
+            else
+            {
+                <MudButton Class="ma-2" Disabled="@(User.UserName == "")" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => Login())">Login</MudButton>
+            }
+            <MudPaper Class="d-flex align-center justify-center mud-width-full py-1" Elevation="0">
+                <MudSelect Class="ma-2" T="string" Label="Model to use" @bind-Text="User.CurrentModel" ValueChanged="@OnModelSelected">
+                    @foreach (var model in AvailableModels)
+                    {
+                        <MudSelectItem T="string" Value="@model">@model</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudPaper>
+            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.NavigateBefore" Disabled="@(IsProcessing  || User.User.Level == UserLevel.A1)" OnClick="@(() => NextLevel(-1))" Variant="Variant.Filled" Color="Color.Default" Size="Size.Large" />
+            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.NavigateNext" Disabled="@(IsProcessing  || User.User.Level == UserLevel.Nativ)" OnClick="@(() => NextLevel(1))" Variant="Variant.Filled" Color="Color.Default" Size="Size.Large" />
+
+        </MudItem>
+        <MudItem xs="6">
+            @if(User != null && User.IsLoggedIn)
+            {
+                <MudText Class="ma-2" Typo="Typo.h5">@($"Record: {User.User.Level}")</MudText>
+                <MudPaper Class="d-flex flex-column align-center justify-space-between mud-width-full my-1 bg-transparent align-content-space-between" Elevation="0">
+                    <MudPaper Class="d-flex flex-row align-center justify-center mud-width-full my-1">
+                        <MudSelect Class="ma-2" T="string" Label="Noise to use" @bind-Text="User.CurrentNoise" ValueChanged="@OnNoiseSelected">
+                            @foreach (var noise in AvailableNoise)
+                            {
+                                <MudSelectItem T="string" Value="@noise">@noise</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        @if (User != null && (User.CurrentNoise != "None" || SpokenText != ""))
+                        {                           
+                            <MudIconButton Class="ma-2" Icon="@(IsPlaying ? Icons.Material.Filled.StopCircle : Icons.Material.Filled.PlayArrow)" Disabled="@IsProcessing" OnClick="@Play" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
+                        }
+
+                        @if (!IsRecording)
+                        {
+                            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.FiberManualRecord" Disabled="@IsProcessing" OnClick="@Recording" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
+                        }
+                        else
+                        {
+                            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Cancel" Disabled="@IsProcessing" OnClick="@Cancel" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
+                            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Stop" Disabled="@IsProcessing" OnClick="@Recording" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
+                        }
+
+                        @if (IsProcessing)
+                        {
+                            <MudProgressCircular Class="ma-2" Color="Color.Primary" Size="Size.Medium" Indeterminate="true" />
+                        }
+
+                        <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Forward" Disabled="@(IsProcessing || IsRecording)" OnClick="@Next" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" />
+
+                    </MudPaper>
+                    <MudPaper Class="d-flex flex-column align-center justify-center mud-width-full my-1">
+                        <MudText Typo="Typo.subtitle2" Class="align-self-start ml-4"><b>Text to speek:</b></MudText>
+                        <MudText Class="mx-4 mb-3 align-content-center" Typo="Typo.h5">@((MarkupString)TextToSpeek)</MudText>
+                        </MudPaper>
+                        <MudPaper Class="d-flex flex-column align-center justify-center mud-width-full my-1">
+                            @if (SpokenText != "")
+                        {
+                            <MudText Typo="Typo.subtitle2" Class="align-self-start ml-4"><b>Spoken text:</b></MudText>
+                            <MudText Class="mx-4 my-3 align-content-center" Typo="Typo.h5">@((MarkupString)SpokenText)</MudText>
+                            <MudProgressLinear Class="my-4  mb-15" Color="@ScoreColor" Striped="true" Size="Size.Large" Max="100" Value="@SpokenScore">
+                                <MudText Typo="Typo.h4" Class="mx-2 mt-15">@SpokenScore%</MudText>
+                            </MudProgressLinear>
+                        }
+                    </MudPaper>
+                    <MudPaper Class="d-flex flex-column justify-center mud-width-full my-1">
+                        <MudText Class="mx-4 mb-3 align-content-center" Typo="Typo.body2">@((MarkupString)HelpText)</MudText>
+                        </MudPaper>
+                    </MudPaper>
+
+            }
+            else
+            {
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Width="100%" Height="110px" />
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Width="100%" Height="110px" />
+            }
+        </MudItem>
+        <MudItem xs="6">
+            @if(User != null && User.IsLoggedIn)
+            {
+                <MudText Class="ma-2" Typo="Typo.h5">History:</MudText>
+                <MudPaper Class="d-flex flex-column overflow-y-scroll overflow-x-hidden bg-transparent" Height="@CalculateHeight(275)" Elevation="0">
+                    @foreach (var item in User.History)
+                    {
+                        <MudPaper Class="ma-1">
+                            <MudGrid Class="ma-1" Spacing="1">
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.body2"><b>Real: </b>@item.RealText</MudText>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.body2"><b>Spoken: </b>@((MarkupString)item.SpokenText)</MudText>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudText Typo="Typo.body2"><b>Sentence Score: </b>@item.SentenceScore</MudText>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudText Typo="Typo.body2"><b>User Score: </b>@item.UserScore</MudText>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        @for(int i = 0; i < (int)(item.Level) + 1; i++)
+                                        {
+                                        <MudIcon Color="@(((int)(item.Level) <= 1) ? Color.Error : ((int)(item.Level) <= 3) ? Color.Warning : Color.Success)" Icon="@Icons.Material.Filled.Favorite" />
+                                        }
+                                        
+                                    </MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                    }
+                </MudPaper>
+            }
+            else
+            {
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Width="100%" Height="110px" />
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Width="100%" Height="110px" />
+            }
+            
+        </MudItem>
+    </MudGrid>
+
+</MudPaper>
+
+@code{
+
+    private string CalculateHeight(int margin = 0)
+    {
+        string value = $"calc(100vh - {margin.ToString()}px)";
+        return value;
+    }
+
+
+    public List<string> AvailableModels { get; set; } = new List<string>();
+    public List<string> AvailableNoise { get; set; } = new List<string>();
+
+    public bool IsPlaying { get; set; }
+    public bool IsRecording { get; set; }
+    public bool IsProcessing { get; set; }
+
+    public string TextToSpeek { get; set; }
+    public string HelpText { get; set; } = "Correction: <del>Delete</del> <ins>Insert</ins> <mark>Change</mark> ";
+    public string SpokenText { get; set; }
+    public int SpokenScore { get; set; }
+    Color ScoreColor { get; set; } 
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            AvailableModels = await Service.GetAvailableModels();
+            AvailableNoise = await Service.GetAvailableNoise();
+            await Login();
+
+        }
+    }
+
+    private async Task NextLevel(int direction)
+    {
+        // get actual level
+        UserLevel oldLevel = User.User.Level;
+
+        // get index of actual UserLevel
+        int index = (int)oldLevel;
+
+        // update index
+        index += direction;
+
+        // check if index is in range
+        if (index < 0 || index >= Enum.GetNames(typeof(UserLevel)).Count())
+        {
+            return;
+        }
+
+        // get new level       
+        var changed = await Service.ChangeLevel(index);
+        if (changed)
+        {
+            await LoadUser();
+            await Next();
+        }
+    }
+
+    private async Task Login(bool login = true) {
+        if (!login)
+        {
+            User.IsLoggedIn = false;
+        }
+        else
+        {
+            User.IsLoggedIn = await Service.LoginAsync(User.UserName);
+            if (User.IsLoggedIn)
+            {
+                await LoadUser();
+                await Next(); 
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadUser()
+    {
+        UserLevel oldLevel = User?.User.Level ?? UserLevel.B1;
+        User.User = await Service.GetUserAsync();
+        User.History = await Service.GetUserHistoryAsync();
+        User.History.Reverse();
+
+        if (oldLevel != User.User.Level)
+        {
+            // check if up or down
+            if (oldLevel < User.User.Level)
+            {
+                Snackbar.Add("Congratulations! You have reached a new level!", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("You have lost a level!", Severity.Error);
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task Play()
+    {
+        if (IsPlaying)
+        {
+            IsPlaying = !(await Service.Play("stop", SpokenText != ""));
+        }
+        else
+        {
+            IsPlaying = await Service.Play("play", SpokenText != "");
+        }
+       
+    }
+
+
+    /// <summary>
+    /// Start or stop the recording of the audio file
+    /// </summary>
+    /// <returns></returns>
+    private async Task Recording()
+    {
+        if (IsRecording)
+        {
+            SpokenText = "";
+            IsRecording = false;
+            IsProcessing = true;
+            StateHasChanged();
+            RecordingResult result = await Service.StopRecording();
+            await AnimateSpokenText(2, result);
+
+            IsProcessing = false;
+            await LoadUser();
+        }
+        else
+        {
+            await Service.Record();
+            IsRecording = true;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task Cancel()
+    {
+        SpokenText = "";
+        IsRecording = false;
+        IsProcessing = false;
+        await Service.CancleRecording();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Get the next text from the backend
+    /// </summary>
+    /// <returns></returns>
+    private async Task Next()
+    {
+        TextToSpeek = await Service.GetNextAsync();
+        SpokenText = "";
+        StateHasChanged();
+    }
+
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    private async Task OnNoiseSelected(string args)
+    {
+        await Service.SetNoise(args.ToString());
+
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    private async Task OnModelSelected(string args)
+    {
+        await Service.SetModel(args.ToString());
+
+    }
+
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="duration"></param>
+    /// <param name="sentence"></param>
+    /// <returns></returns>
+    private async Task AnimateSpokenText(int duration, RecordingResult result)
+    {
+        // set color of the score
+        ScoreColor = (result.Score > 80) ? Color.Success : (result.Score > 60) ? Color.Warning : Color.Error;
+
+
+        // Calculate the delay between each character
+        int delay = (int)(duration * 1000 / (result.Text.Length * 2));
+
+        int i = 0;
+
+        while (i < result.Text.Length)
+        {
+            SpokenText = result.Text.Substring(0, i);
+            i += 2;
+        
+            // assign the color to the score by the progress i
+            double scoreProgress = (double)i / (double)result.Text.Length;
+
+            if (scoreProgress > 1)
+            {
+                scoreProgress = 1;
+            }
+
+            // increase the score by the progress
+            SpokenScore = (int)(result.Score * scoreProgress);
+
+            StateHasChanged();
+            await Task.Delay(delay);
+        }
+
+        SpokenText = result.Text;
+        StateHasChanged();
+    }
+}
