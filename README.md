@@ -20,27 +20,26 @@ Requirements
 ## To get started with the automated pronunciation trainer project, follow these steps:
 
 1. Clone the repository to your local machine.
+2. Install the required dependencies for the Flask backend. You can do this by running the following command in the terminal from the root directory of the project:
 
-Install the required dependencies for the Flask backend. You can do this by running the following command in the terminal from the root directory of the project:
+  ```
+  pip install -r requirements.txt
+  ```
 
-```
-pip install -r requirements.txt
-```
+3. Run the Flask backend. To do this, navigate to the backend folder in the terminal and run the following command:
 
-2. Run the Flask backend. To do this, navigate to the backend folder in the terminal and run the following command:
-
-```
-python app.py
-```
-3. Install the required dependencies for the Blazor UI. You can do this by running the following command in the terminal from the root directory of the project:
-```
-dotnet restore
-```
-4. Run the Blazor UI. To do this, navigate to the frontend folder in the terminal and run the following command:
-```
-dotnet run
-```
-5. Access the trainer in your web browser by navigating to http://localhost:5000.
+  ```
+  python app.py
+  ```
+4. Install the required dependencies for the Blazor UI. You can do this by running the following command in the terminal from the root directory of the project:
+  ```
+  dotnet restore
+  ```
+5. Run the Blazor UI. To do this, navigate to the frontend folder in the terminal and run the following command:
+  ```
+  dotnet run
+  ```
+6. Access the trainer in your web browser by navigating to http://localhost:5000.
 
 These steps should get you up and running with the automated pronunciation trainer project. If you run into any issues or errors, refer to the documentation or raise an issue in the project's repository.
 
