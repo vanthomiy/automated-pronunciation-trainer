@@ -1,0 +1,8 @@
+Levenshtein~=0.20.9
+jiwer~=2.5.1
+PyAudio~=0.2.13
+pydub~=0.25.1
+Flask~=2.2.3
+Flask-Cors~=3.0.10
+openai-whisper==20230124
+

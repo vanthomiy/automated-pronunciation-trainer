@@ -227,31 +227,6 @@ class UserHandler:
             return UserHandler(user_name)
 
 
-# short jiwer test
-
-# real text
-real_text = "abcd"
-real_text1 = "The same"
-# spoken text
-spoken_text = "abd"
-spoken_text1 = "The same1"
-
-# calculate wer
-wer_score = wer(real_text, spoken_text)
-wer_score1 = wer(real_text1, spoken_text1)
-
-# print wer
-print(f"wer: {wer_score}")
-print(f"wer: {wer_score1}")
-
-# edit alignment
-alignment = Levenshtein.editops(spoken_text, real_text)
-alignment1 = Levenshtein.editops(spoken_text1, real_text1)
-
-# print alignment
-print(f"alignment: {alignment}")
-print(f"alignment: {alignment1}")
-
 
 
 

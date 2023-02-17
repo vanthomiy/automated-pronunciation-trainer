@@ -1,8 +1,4 @@
-import os
-
-import scipy
 import whisper
-from matplotlib import pyplot as plt
 
 
 class WhisperTranscriptor:

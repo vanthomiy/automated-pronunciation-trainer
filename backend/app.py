@@ -1,13 +1,12 @@
 import os
-import time
 import wave
 
 from flask import Flask, jsonify
 from flask_cors import CORS
 
-from Praktikum2.backend.sound_handler import SoundRecorder, SoundPlayer, NoiseAdder
-from Praktikum2.backend.user_handler import UserHandler
-from Praktikum2.backend.whisper_transcriptor import WhisperTranscriptor
+from sound_handler import NoiseAdder, SoundRecorder, SoundPlayer
+from user_handler import UserHandler
+from whisper_transcriptor import WhisperTranscriptor
 
 app = Flask(__name__)
 CORS(app)
