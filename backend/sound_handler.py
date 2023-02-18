@@ -153,7 +153,7 @@ class NoiseAdder:
         """
 
         if self.selected_noise == "None":
-            return
+            return None
 
         sound1 = AudioSegment.from_file(f"./noise/{self.selected_noise}.wav", format="wav")
         sound2 = AudioSegment.from_file(f"./output.wav", format="wav")
@@ -171,3 +171,5 @@ class NoiseAdder:
         combined = sound1.overlay(sound2)
         # Export combined sound as wav file
         combined.export("./output.wav", format="wav")
+
+        return combined

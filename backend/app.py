@@ -1,7 +1,7 @@
 import os
 import wave
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from sound_handler import NoiseAdder, SoundRecorder, SoundPlayer
@@ -98,6 +98,35 @@ def change_level(level):
     app.config['user'].save()
     return "true"
 
+@app.route('/api/send_record/', methods=['POST'])
+def send_record():
+    """
+    receive byte array (audio_data) from frontend and save it as wav file
+    :param audio_data:
+    :return:
+    """
+    try:
+        # get byte string from request.data
+        byte_string = request.data
+        # convert byte string to byte array
+        byte_array = bytearray(byte_string)
+        # do something with byte_array
+
+        # save audio_data as wav file
+        with open('output.wav', 'wb') as f:
+            f.write(byte_array)
+        # add noise to wav file
+        noise_file = app.config['noise'].add_noise()
+        print("noise added")
+        text = app.config['transcriptor'].transcript()
+        print("transcripted")
+        score, alignment = app.config['user'].add_history(text)
+        print("history added")
+        # return score and text
+        return jsonify({"score": score, "text": alignment, "data": noise_file})
+    except Exception as e:
+        print(e)
+        return "-1"
 
 @app.route('/api/noise')
 def get_noise():
