@@ -7,8 +7,11 @@ namespace AutomatedPronouncingTrainer.Service
         public bool IsLoggedIn { get; set; } = false;
         public string CurrentModel { get; set; } = "base.en";
         public string CurrentNoise { get; set; } = "None";
-
         public string UserName { get; set; } = "User";
+        public string Url { get; set; } = "";
+        public bool IsPlaying { get; set; }
+        public bool IsRecording { get; set; }
+        public bool IsProcessing { get; set; }
         public List<ResultHistory> History { get; set; } = new List<ResultHistory>();
 
         public UserModel User { get; set; } = new UserModel();

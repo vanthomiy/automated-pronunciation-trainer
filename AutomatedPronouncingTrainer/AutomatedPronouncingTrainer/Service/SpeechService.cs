@@ -1,6 +1,8 @@
 ﻿using System.Net.Http;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
 using AutomatedPronouncingTrainer.Model;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 
 namespace AutomatedPronouncingTrainer.Service
@@ -71,6 +73,19 @@ namespace AutomatedPronouncingTrainer.Service
             return content == "true";
         }
 
+        /// <summary>
+        /// Send record as byte array to server
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        public async Task<RecordingResult?> SendRecordAsync(byte[] file)
+        {
+            var response = await httpClient.PostAsync(baseUrl + "send_record", new ByteArrayContent(file));
+            var content = await response.Content.ReadFromJsonAsync<RecordingResult>();
+
+            return content;
+        }
+
         public async Task<bool> Record()
         {
             var response = await httpClient.GetAsync(baseUrl + "record");
@@ -124,5 +139,8 @@ namespace AutomatedPronouncingTrainer.Service
 
         [JsonProperty("score")]
         public double Score { get; set; }
+
+        [JsonProperty("data")]
+        public string? Data { get; set; }
     }
 }

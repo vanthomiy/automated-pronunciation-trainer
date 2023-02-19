@@ -1,0 +1,138 @@
+﻿@using AutomatedPronouncingTrainer.Service;
+@using MudBlazor
+@inject IJSRuntime mJS
+@inject SpeechService Service
+@inject UserService User
+
+<audio hidden id="sound" controls src=@User.Url></audio>
+
+<MudText Class="ma-2" Typo="Typo.h5">@($"Audio: {User.User.Level}")</MudText>
+
+<MudPaper Class="d-flex flex-column align-center justify-space-between mud-width-full my-1 bg-transparent align-content-space-between" Elevation="0">
+    <MudPaper Class="d-flex flex-row align-center justify-center mud-width-full my-1">
+        <MudSelect Class="ma-2" T="string" Label="Noise to use" @bind-Text="User.CurrentNoise" ValueChanged="@OnNoiseSelected">
+            @foreach (var noise in AvailableNoise)
+            {
+                <MudSelectItem T="string" Value="@noise">@noise</MudSelectItem>
+            }
+        </MudSelect>
+
+        @if (User.Url != "")
+        {
+            <MudIconButton Class="ma-2" Icon="@(User.IsPlaying ? Icons.Material.Filled.StopCircle : Icons.Material.Filled.PlayArrow)" Disabled="@User.IsProcessing" OnClick="@PlayPauseAudio" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
+        }
+
+        @if (!User.IsRecording)
+        {
+            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.FiberManualRecord" Disabled="@User.IsProcessing" OnClick="@RecordAudioStart" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
+        }
+        else
+        {
+            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Cancel" Disabled="@User.IsProcessing" OnClick="@RecordAudioCancel" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
+            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Stop" Disabled="@User.IsProcessing" OnClick="@RecordAudioStop" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
+        }
+
+        @if (User.IsProcessing)
+        {
+            <MudProgressCircular Class="ma-2" Color="Color.Primary" Size="Size.Medium" Indeterminate="true" />
+        }
+
+        <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Forward" Disabled="@(User.IsProcessing || User.IsRecording)" OnClick="@OnNext" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" />
+
+    </MudPaper>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public Action OnNext { get; set; }
+
+    [Parameter]
+    public Action<RecordingResult> OnDataReceived { get; set; }  
+
+    public List<string> AvailableNoise { get; set; } = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await mJS.InvokeVoidAsync("BlazorAudioRecorder.Initialize", DotNetObjectReference.Create(this));
+        await mJS.InvokeVoidAsync("BlazorAudioPlayer.Initialize", DotNetObjectReference.Create(this));
+
+        AvailableNoise = await Service.GetAvailableNoise();
+
+    }
+
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    private async Task OnNoiseSelected(string args)
+    {
+        await Service.SetNoise(args.ToString());
+
+    }
+
+    [JSInvokable]
+    public async Task OnPlayAudioFinished()
+    {
+        User.IsPlaying = false;
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    void PlayPauseAudio()
+    {
+        if (!User.IsPlaying)
+            mJS.InvokeVoidAsync("PlaySound");
+        else
+            mJS.InvokeVoidAsync("StopSound");
+    }
+
+    void RecordAudioStart()
+    {
+        User.Url = "";
+        User.IsRecording = true;
+
+        mJS.InvokeVoidAsync("BlazorAudioRecorder.StartRecord");
+    }
+
+    void RecordAudioStop()
+    {
+        User.IsRecording = false;
+        User.IsProcessing = true;
+
+        mJS.InvokeVoidAsync("BlazorAudioRecorder.StopRecord");
+    }
+
+    void RecordAudioCancel()
+    {
+        User.Url = "";
+        User.IsRecording = false;
+        User.IsProcessing = false;
+
+        mJS.InvokeVoidAsync("BlazorAudioRecorder.CancelRecord");
+    }
+
+    [JSInvokable]
+    public async Task OnAudioUrl(string vUrl)
+    {
+        User.Url = vUrl;
+        using (HttpClient client = new HttpClient())
+        {
+            using (HttpResponseMessage response = await client.GetAsync(User.Url, HttpCompletionOption.ResponseHeadersRead))
+            {
+                byte[] streamToReadFrom = await response.Content.ReadAsByteArrayAsync();
+                var result = await Service.SendRecordAsync(streamToReadFrom);
+
+                // push audio file (string) to url to play
+                if (result != null)
+                {
+                    User.IsProcessing = false;
+                    OnDataReceived.Invoke(result);
+                }
+            }
+        }
+    
+
+        await InvokeAsync(() => StateHasChanged());
+    }
+}
