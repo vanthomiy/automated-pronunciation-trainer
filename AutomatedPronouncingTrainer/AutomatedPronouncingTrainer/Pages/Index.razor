@@ -6,6 +6,8 @@
 @inject SpeechService Service
 @inject UserService User
 @inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+
 
 <MudPaper Class="overflow-hidden d-flex flex-column bg-transparent gap-4" Width="100%" Height="@CalculateHeight(100)" Elevation="0">
     <MudGrid Class="pa-4">
@@ -26,65 +28,31 @@
                     }
                 </MudSelect>
             </MudPaper>
-            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.NavigateBefore" Disabled="@(IsProcessing  || User.User.Level == UserLevel.A1)" OnClick="@(() => NextLevel(-1))" Variant="Variant.Filled" Color="Color.Default" Size="Size.Large" />
-            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.NavigateNext" Disabled="@(IsProcessing  || User.User.Level == UserLevel.Nativ)" OnClick="@(() => NextLevel(1))" Variant="Variant.Filled" Color="Color.Default" Size="Size.Large" />
+            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.NavigateBefore" Disabled="@(User.IsProcessing  || User.User.Level == UserLevel.A1)" OnClick="@(() => NextLevel(-1))" Variant="Variant.Filled" Color="Color.Default" Size="Size.Large" />
+            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.NavigateNext" Disabled="@(User.IsProcessing  || User.User.Level == UserLevel.Nativ)" OnClick="@(() => NextLevel(1))" Variant="Variant.Filled" Color="Color.Default" Size="Size.Large" />
 
         </MudItem>
         <MudItem xs="6">
             @if(User != null && User.IsLoggedIn)
             {
-                <MudText Class="ma-2" Typo="Typo.h5">@($"Record: {User.User.Level}")</MudText>
-                <MudPaper Class="d-flex flex-column align-center justify-space-between mud-width-full my-1 bg-transparent align-content-space-between" Elevation="0">
-                    <MudPaper Class="d-flex flex-row align-center justify-center mud-width-full my-1">
-                        <MudSelect Class="ma-2" T="string" Label="Noise to use" @bind-Text="User.CurrentNoise" ValueChanged="@OnNoiseSelected">
-                            @foreach (var noise in AvailableNoise)
-                            {
-                                <MudSelectItem T="string" Value="@noise">@noise</MudSelectItem>
-                            }
-                        </MudSelect>
-
-                        @if (User != null && (User.CurrentNoise != "None" || SpokenText != ""))
-                        {                           
-                            <MudIconButton Class="ma-2" Icon="@(IsPlaying ? Icons.Material.Filled.StopCircle : Icons.Material.Filled.PlayArrow)" Disabled="@IsProcessing" OnClick="@Play" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
-                        }
-
-                        @if (!IsRecording)
-                        {
-                            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.FiberManualRecord" Disabled="@IsProcessing" OnClick="@Recording" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
-                        }
-                        else
-                        {
-                            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Cancel" Disabled="@IsProcessing" OnClick="@Cancel" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
-                            <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Stop" Disabled="@IsProcessing" OnClick="@Recording" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
-                        }
-
-                        @if (IsProcessing)
-                        {
-                            <MudProgressCircular Class="ma-2" Color="Color.Primary" Size="Size.Medium" Indeterminate="true" />
-                        }
-
-                        <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Forward" Disabled="@(IsProcessing || IsRecording)" OnClick="@Next" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" />
-
+                <RecordComponent OnNext="@(() => Next())" OnDataReceived="@(r => OnDataReceived(r))"></RecordComponent>
+                <MudPaper Class="d-flex flex-column align-center justify-center mud-width-full my-1">
+                    <MudText Typo="Typo.subtitle2" Class="align-self-start ml-4"><b>Text to speek:</b></MudText>
+                    <MudText Class="mx-4 mb-3 align-content-center" Typo="Typo.h5">@((MarkupString)TextToSpeek)</MudText>
                     </MudPaper>
-                    <MudPaper Class="d-flex flex-column align-center justify-center mud-width-full my-1">
-                        <MudText Typo="Typo.subtitle2" Class="align-self-start ml-4"><b>Text to speek:</b></MudText>
-                        <MudText Class="mx-4 mb-3 align-content-center" Typo="Typo.h5">@((MarkupString)TextToSpeek)</MudText>
-                        </MudPaper>
-                        <MudPaper Class="d-flex flex-column align-center justify-center mud-width-full my-1">
-                            @if (SpokenText != "")
-                        {
-                            <MudText Typo="Typo.subtitle2" Class="align-self-start ml-4"><b>Spoken text:</b></MudText>
-                            <MudText Class="mx-4 my-3 align-content-center" Typo="Typo.h5">@((MarkupString)SpokenText)</MudText>
-                            <MudProgressLinear Class="my-4  mb-15" Color="@ScoreColor" Striped="true" Size="Size.Large" Max="100" Value="@SpokenScore">
-                                <MudText Typo="Typo.h4" Class="mx-2 mt-15">@SpokenScore%</MudText>
-                            </MudProgressLinear>
-                        }
-                    </MudPaper>
-                    <MudPaper Class="d-flex flex-column justify-center mud-width-full my-1">
-                        <MudText Class="mx-4 mb-3 align-content-center" Typo="Typo.body2">@((MarkupString)HelpText)</MudText>
-                        </MudPaper>
-                    </MudPaper>
-
+                <MudPaper Class="d-flex flex-column align-center justify-center mud-width-full my-1">
+                    @if (SpokenText != "")
+                    {
+                        <MudText Typo="Typo.subtitle2" Class="align-self-start ml-4"><b>Spoken text:</b></MudText>
+                        <MudText Class="mx-4 my-3 align-content-center" Typo="Typo.h5">@((MarkupString)SpokenText)</MudText>
+                        <MudProgressLinear Class="my-4  mb-15" Color="@ScoreColor" Striped="true" Size="Size.Large" Max="100" Value="@SpokenScore">
+                            <MudText Typo="Typo.h4" Class="mx-2 mt-15">@SpokenScore%</MudText>
+                        </MudProgressLinear>
+                    }
+                </MudPaper>
+                <MudPaper Class="d-flex flex-column justify-center mud-width-full my-1">
+                    <MudText Class="mx-4 mb-3 align-content-center" Typo="Typo.body2">@((MarkupString)HelpText)</MudText>
+                </MudPaper>
             }
             else
             {
@@ -133,7 +101,6 @@
             
         </MudItem>
     </MudGrid>
-
 </MudPaper>
 
 @code{
@@ -146,11 +113,6 @@
 
 
     public List<string> AvailableModels { get; set; } = new List<string>();
-    public List<string> AvailableNoise { get; set; } = new List<string>();
-
-    public bool IsPlaying { get; set; }
-    public bool IsRecording { get; set; }
-    public bool IsProcessing { get; set; }
 
     public string TextToSpeek { get; set; }
     public string HelpText { get; set; } = "Correction: <del>Delete</del> <ins>Insert</ins> <mark>Change</mark> ";
@@ -158,14 +120,19 @@
     public int SpokenScore { get; set; }
     Color ScoreColor { get; set; } 
 
+    private async Task OnDataReceived(RecordingResult result)
+    {
+        await AnimateSpokenText(2, result);
+
+        await LoadUser();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             AvailableModels = await Service.GetAvailableModels();
-            AvailableNoise = await Service.GetAvailableNoise();
             await Login();
-
         }
     }
 
@@ -236,55 +203,6 @@
         StateHasChanged();
     }
 
-    private async Task Play()
-    {
-        if (IsPlaying)
-        {
-            IsPlaying = !(await Service.Play("stop", SpokenText != ""));
-        }
-        else
-        {
-            IsPlaying = await Service.Play("play", SpokenText != "");
-        }
-       
-    }
-
-
-    /// <summary>
-    /// Start or stop the recording of the audio file
-    /// </summary>
-    /// <returns></returns>
-    private async Task Recording()
-    {
-        if (IsRecording)
-        {
-            SpokenText = "";
-            IsRecording = false;
-            IsProcessing = true;
-            StateHasChanged();
-            RecordingResult result = await Service.StopRecording();
-            await AnimateSpokenText(2, result);
-
-            IsProcessing = false;
-            await LoadUser();
-        }
-        else
-        {
-            await Service.Record();
-            IsRecording = true;
-        }
-
-        StateHasChanged();
-    }
-
-    private async Task Cancel()
-    {
-        SpokenText = "";
-        IsRecording = false;
-        IsProcessing = false;
-        await Service.CancleRecording();
-        StateHasChanged();
-    }
 
     /// <summary>
     /// Get the next text from the backend
@@ -294,19 +212,10 @@
     {
         TextToSpeek = await Service.GetNextAsync();
         SpokenText = "";
+        User.Url = "";
         StateHasChanged();
     }
 
-    /// <summary>
-    ///
-    /// </summary>
-    /// <param name="args"></param>
-    /// <returns></returns>
-    private async Task OnNoiseSelected(string args)
-    {
-        await Service.SetNoise(args.ToString());
-
-    }
 
     /// <summary>
     /// 

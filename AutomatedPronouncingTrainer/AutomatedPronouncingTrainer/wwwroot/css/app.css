@@ -62,3 +62,59 @@ a, .btn-link {
     .blazor-error-boundary::after {
         content: "An error has occurred."
     }
+
+
+#buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+    #buttons button {
+        font-size: 1rem;
+        padding: 1rem;
+        width: calc(50% - 0.25rem);
+    }
+
+
+.record {
+    background: #0088cc;
+    text-align: center;
+    color: white;
+}
+
+    .record:hover, .record:focus {
+        box-shadow: inset 0px 0px 10px rgba(255, 255, 255, 1);
+        background: #0ae;
+    }
+
+    .record:active {
+        box-shadow: inset 0px 0px 20px rgba(0,0,0,0.5);
+        transform: translateY(2px);
+    }
+
+.recording {
+    background: red;
+    text-align: center;
+    color: white;
+}
+
+.stop {
+    font-size: 1rem;
+    background: #0088cc;
+    text-align: center;
+    color: white;
+    border: none;
+    transition: all 0.2s;
+    padding: 0.5rem;
+}
+
+    .stop:hover, .stop:focus {
+        box-shadow: inset 0px 0px 10px rgba(255, 255, 255, 1);
+        background: #0ae;
+    }
+
+    .stop:active {
+        box-shadow: inset 0px 0px 20px rgba(0,0,0,0.5);
+        transform: translateY(2px);
+    }

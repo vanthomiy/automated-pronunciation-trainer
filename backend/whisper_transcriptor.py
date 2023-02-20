@@ -2,7 +2,7 @@ import whisper
 
 
 class WhisperTranscriptor:
-    def __init__(self, model_name="base.en", file_name="output.wav"):
+    def __init__(self, model_name="base.en", file_name="output.mp3"):
         self.model_name = model_name
         self.model = whisper.load_model(self.model_name)
         self.file_name = file_name

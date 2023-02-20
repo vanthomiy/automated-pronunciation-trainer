@@ -1,6 +1,8 @@
 ﻿using System.Net.Http;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
 using AutomatedPronouncingTrainer.Model;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 
 namespace AutomatedPronouncingTrainer.Service
@@ -23,12 +25,12 @@ namespace AutomatedPronouncingTrainer.Service
             return content == "true";
         }
 
-        public async Task<bool> SetNoise(string noise)
+        public async Task<byte[]> SetNoise(string noise)
         {
             var response = await httpClient.GetAsync(baseUrl + "set_noise/" + noise);
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsByteArrayAsync();
 
-            return content == "true";
+            return content;
         }
 
         public async Task<bool> SetModel(string model)
@@ -63,33 +65,29 @@ namespace AutomatedPronouncingTrainer.Service
             return models;
         }
 
-        public async Task<bool> Play(string command, bool isRecording)
+        /// <summary>
+        /// Send record as byte array to server
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        public async Task<RecordingResult?> SendRecordAsync(byte[] file)
         {
-            var response = await httpClient.GetAsync(baseUrl + "play_noise/" + command + "/" + isRecording);
-            var content = await response.Content.ReadAsStringAsync();
+            var response = await httpClient.PostAsync(baseUrl + "send_record", new ByteArrayContent(file));
+            var content = await response.Content.ReadFromJsonAsync<RecordingResult>();
 
-            return content == "true";
+            return content;
         }
 
-        public async Task<bool> Record()
+        /// <summary>
+        /// Get the byte array of the record with noise
+        /// </summary>
+        /// <returns></returns>
+        public async Task<byte[]> GetRecordNoise()
         {
-            var response = await httpClient.GetAsync(baseUrl + "record");
-            var content = await response.Content.ReadAsStringAsync();
+            var response = await httpClient.GetAsync(baseUrl + "get_record");
+            var content = await response.Content.ReadAsByteArrayAsync();
 
-            return content == "true";
-        }
-
-        public async Task CancleRecording()
-        {
-            var response = await httpClient.GetAsync(baseUrl + "cancel_record");
-        }
-
-        public async Task<RecordingResult> StopRecording()
-        {
-            var response = await httpClient.GetAsync(baseUrl + "stop_record");
-            var content = await response.Content.ReadAsStringAsync();
-            var result = JsonConvert.DeserializeObject<RecordingResult>(content);
-            return result;
+            return content;
         }
 
         public async Task<string> GetNextAsync()
@@ -124,5 +122,8 @@ namespace AutomatedPronouncingTrainer.Service
 
         [JsonProperty("score")]
         public double Score { get; set; }
+
+        [JsonProperty("data")]
+        public byte[]? Data { get; set; }
     }
 }

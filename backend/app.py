@@ -1,19 +1,17 @@
 import os
-import wave
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from sound_handler import NoiseAdder, SoundRecorder, SoundPlayer
+from sound_handler import NoiseAdder
 from user_handler import UserHandler
 from whisper_transcriptor import WhisperTranscriptor
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['recorder'] = SoundRecorder('output.wav')
 app.config['transcriptor'] = WhisperTranscriptor()
-app.config['noise'] = NoiseAdder('output.wav')
+app.config['noise'] = NoiseAdder('output.mp3')
 
 
 @app.route('/api/login/<user_name>')
@@ -35,49 +33,10 @@ def get_models():
 
 @app.route('/api/next')
 def next():
-    # delete output.wav if it exists
-    if os.path.exists("./output.wav"):
-        os.remove("./output.wav")
+    # delete output.mp3 if it exists
+    if os.path.exists("./output.mp3"):
+        os.remove("./output.mp3")
     return app.config['user'].get_text()
-
-
-@app.route('/api/record')
-def record():
-    try:
-        app.config['recorder'] = SoundRecorder('output.wav')
-        started = app.config['recorder'].start()
-        return "true" if started else "false"
-    except Exception as e:
-        print(e)
-        return "false"
-
-
-@app.route('/api/stop_record')
-def stop_record():
-    try:
-        app.config['recorder'].stop()
-        print("recording stopped")
-        app.config['noise'].add_noise()
-        print("noise added")
-        text = app.config['transcriptor'].transcript()
-        print("transcripted")
-        score, alignment = app.config['user'].add_history(text)
-        print("history added")
-        # return score and text
-        return jsonify({"score": score, "text": alignment})
-    except Exception as e:
-        print(e)
-        return "-1"
-
-
-@app.route('/api/cancel_record')
-def cancel_record():
-    try:
-        app.config['recorder'].stop()
-        return "true"
-    except Exception as e:
-        print(e)
-        return "false"
 
 
 @app.route('/api/history')
@@ -99,6 +58,53 @@ def change_level(level):
     return "true"
 
 
+@app.route('/api/get_record/')
+def get_record():
+    """
+    send byte array (audio_data) to frontend
+    :return:
+    """
+    try:
+        # get byte array from wav file
+        byte_array = app.config['noise'].get_noise_array("output.mp3")
+        # convert byte array to byte string
+        byte_string = bytes(byte_array)
+        # send byte string to frontend
+        return byte_string
+    except Exception as e:
+        print(e)
+        return "-1"
+
+@app.route('/api/send_record/', methods=['POST'])
+def send_record():
+    """
+    receive byte array (audio_data) from frontend and save it as wav file
+    :param audio_data:
+    :return:
+    """
+    try:
+        # get byte string from request.data
+        byte_string = request.data
+        # convert byte string to byte array
+        byte_array = bytearray(byte_string)
+        # do something with byte_array
+        # save byte_array as mp3 file using pydub
+        app.config['noise'].save_file(byte_array)
+
+        # add noise to wav file
+        app.config['noise'].add_noise()
+        print("noise added")
+        text = app.config['transcriptor'].transcript()
+        print("transcripted")
+        score, alignment = app.config['user'].add_history(text)
+        print("history added")
+
+        return jsonify({"score": score, "text": alignment})
+    except Exception as e:
+        print(e)
+        return "-1"
+
+
 @app.route('/api/noise')
 def get_noise():
     keys = list(app.config['noise'].noises.keys())
@@ -108,24 +114,10 @@ def get_noise():
 @app.route('/api/set_noise/<noise>')
 def set_noise(noise):
     app.config['noise'].selected_noise = noise
-    return "true"
-
-
-@app.route('/api/play_noise/<command>/<is_recording>')
-def play_noise(command, is_recording):
-    if command == "play":
-        wf = app.config['noise'].get_noise()
-        if "True" == is_recording:
-            wf = wave.open('./output.wav', 'rb')
-        app.config['player'] = SoundPlayer(wf)
-        app.config['player'].play = True
-        result = app.config['player'].start()
-        return "true" if result else "false"
-    elif command == "stop":
-        # stop playing noise
-        app.config['player'].play = False
-        app.config['player'].t.join()
-    return "true"
+    if noise == "None":
+        return None
+    wf = app.config['noise'].get_noise_array()
+    return wf
 
 
 if __name__ == '__main__':
