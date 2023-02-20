@@ -20,6 +20,7 @@
     };
 
     window.PlaySound = function (noise) {
+        console.log('PlaySound');
         if (noise) {
             soundPlayerNoise.play();
         }
@@ -38,6 +39,7 @@
             soundPlayer.currentTime = 0;
         }
     }
+
 
 })();
 

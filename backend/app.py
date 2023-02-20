@@ -11,7 +11,7 @@ app = Flask(__name__)
 CORS(app)
 
 app.config['transcriptor'] = WhisperTranscriptor()
-app.config['noise'] = NoiseAdder('output.wav')
+app.config['noise'] = NoiseAdder('output.mp3')
 
 
 @app.route('/api/login/<user_name>')
@@ -33,9 +33,9 @@ def get_models():
 
 @app.route('/api/next')
 def next():
-    # delete output.wav if it exists
-    if os.path.exists("./output.wav"):
-        os.remove("./output.wav")
+    # delete output.mp3 if it exists
+    if os.path.exists("./output.mp3"):
+        os.remove("./output.mp3")
     return app.config['user'].get_text()
 
 
@@ -58,6 +58,23 @@ def change_level(level):
     return "true"
 
 
+@app.route('/api/get_record/')
+def get_record():
+    """
+    send byte array (audio_data) to frontend
+    :return:
+    """
+    try:
+        # get byte array from wav file
+        byte_array = app.config['noise'].get_noise_array("output.mp3")
+        # convert byte array to byte string
+        byte_string = bytes(byte_array)
+        # send byte string to frontend
+        return byte_string
+    except Exception as e:
+        print(e)
+        return "-1"
+
 @app.route('/api/send_record/', methods=['POST'])
 def send_record():
     """
@@ -75,14 +92,14 @@ def send_record():
         app.config['noise'].save_file(byte_array)
 
         # add noise to wav file
-        noise_file = app.config['noise'].add_noise()
+        app.config['noise'].add_noise()
         print("noise added")
         text = app.config['transcriptor'].transcript()
         print("transcripted")
         score, alignment = app.config['user'].add_history(text)
         print("history added")
 
-        return jsonify({"score": score, "text": alignment, "data": noise_file})
+        return jsonify({"score": score, "text": alignment})
     except Exception as e:
         print(e)
         return "-1"
@@ -98,7 +115,7 @@ def get_noise():
 def set_noise(noise):
     app.config['noise'].selected_noise = noise
     if noise == "None":
-        return "None"
+        return None
     wf = app.config['noise'].get_noise_array()
     return wf
 

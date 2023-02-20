@@ -78,6 +78,18 @@ namespace AutomatedPronouncingTrainer.Service
             return content;
         }
 
+        /// <summary>
+        /// Get the byte array of the record with noise
+        /// </summary>
+        /// <returns></returns>
+        public async Task<byte[]> GetRecordNoise()
+        {
+            var response = await httpClient.GetAsync(baseUrl + "get_record");
+            var content = await response.Content.ReadAsByteArrayAsync();
+
+            return content;
+        }
+
         public async Task<string> GetNextAsync()
         {
             var response = await httpClient.GetAsync(baseUrl + "next");

@@ -78,8 +78,16 @@
     {
         var noise = await Service.SetNoise(args.ToString());
 
-        // make noise (byte array) available to play on User.Url as blob
-        await MakeUrl(noise, true);
+        if (noise != null && args.ToString() != "None")
+        {
+            // make noise (byte array) available to play on User.Url as blob
+            await MakeUrl(noise, true);
+        }
+
+        if (User.IsPlayingNoise)
+        {
+            await mJS.InvokeVoidAsync("PlaySound", true);
+        }
 
         StateHasChanged();
     }
@@ -87,6 +95,7 @@
     [JSInvokable]
     public async Task OnPlayAudioFinished()
     {
+        User.IsPlayingNoise = false;
         User.IsPlaying = false;
         await InvokeAsync(() => StateHasChanged());
     }
@@ -173,9 +182,15 @@
                 if (result != null)
                 {
                     User.IsProcessing = false;
-                    if (result.Data != null && result.Data.Length > 0)
-                        await MakeUrl(result.Data);
+
                     OnDataReceived.Invoke(result);
+
+                    if (User.NoiseUrl != "")
+                    {
+                        // get the noise
+                        var recordNoise = await Service.GetRecordNoise();
+                        await MakeUrl(recordNoise);
+                    }
                 }
             }
         }

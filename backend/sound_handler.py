@@ -1,11 +1,7 @@
 import glob
-import json
-import os
-import struct
 
 import io
 import pyaudio
-import wave
 
 from pydub import AudioSegment
 
@@ -22,26 +18,6 @@ class NoiseAdder:
         self.p = pyaudio.PyAudio()
 
     import struct
-
-    def write_header(self, _bytes, _nchannels, _sampwidth, _framerate):
-        WAVE_FORMAT_PCM = 0x0001
-        initlength = len(_bytes)
-        bytes_to_add = b'RIFF'
-
-        _nframes = initlength // (_nchannels * _sampwidth)
-        _datalength = _nframes * _nchannels * _sampwidth
-
-        bytes_to_add += struct.pack('<L4s4sLHHLLHH4s',
-                                    36 + _datalength, b'WAVE', b'fmt ', 16,
-                                    WAVE_FORMAT_PCM, _nchannels, _framerate,
-                                    _nchannels * _framerate * _sampwidth,
-                                    _nchannels * _sampwidth,
-                                    _sampwidth * 8, b'data')
-
-        bytes_to_add += struct.pack('<L', _datalength)
-
-        return bytes_to_add + _bytes
-
     def save_file(self, byte_array):
         """
         Save byte array as mp3 file
@@ -54,12 +30,12 @@ class NoiseAdder:
         # Load the audio/webm data as an AudioSegment object
         audio_segment = AudioSegment.from_file(webm_io, format="webm")
 
-        # Convert the audio segment to WAV format
-        wav_data = audio_segment.export(format="wav").read()
+        # Convert the audio segment to mp3 format
+        mp3_data = audio_segment.export(format="mp3").read()
 
-        # Save the WAV data to a file
-        with open("output.wav", "wb") as f:
-            f.write(wav_data)
+        # Save the mp3 data to a file
+        with open("output.mp3", "wb") as f:
+            f.write(mp3_data)
 
     def get_noise_array(self, other_path=None) -> bytearray:
         """
@@ -68,12 +44,12 @@ class NoiseAdder:
         if other_path is not None:
             audio_file = other_path
         else:
-            audio_file = f"noise/{self.selected_noise}.wav"
+            audio_file = f"noise/{self.selected_noise}.mp3"
 
-        # Open the .wav file
-        with wave.open(audio_file, 'rb') as wav_file:
-            # Read in the data and convert to a byte array
-            return bytearray(wav_file.readframes(wav_file.getnframes()))
+        # Open the ..mp3 file as byte array
+        with open(audio_file, "rb") as f:
+            byte_array = bytearray(f.read())
+            return byte_array
 
     def get_noise(self):
         """
@@ -88,10 +64,11 @@ class NoiseAdder:
         """
         noises = {}
         # get all noise files
-        noise_files = glob.glob("noise/*.wav")
+        noise_files = glob.glob("noise/*.mp3")
         for noise_file in noise_files:
-            wf = wave.open(noise_file, 'rb')
-            # add noise to noises (key is filename without .wav)
+            # open noise file using pydub
+            wf = AudioSegment.from_file(noise_file, format="mp3")
+            # add noise to noises (key is filename without ..mp3)
             noises[noise_file.split("\\")[1].split(".")[0]] = wf
 
         noises["None"] = None
@@ -105,11 +82,11 @@ class NoiseAdder:
         """
 
         if self.selected_noise == "None":
-            return "None"
+            return None
 
-        noise_file = f"./noise/{self.selected_noise}.wav"
-        sound1 = AudioSegment.from_file(noise_file, format="wav")
-        sound2 = AudioSegment.from_file("output.wav", format="wav")
+        noise_file = f"./noise/{self.selected_noise}.mp3"
+        sound1 = AudioSegment.from_file(noise_file, format="mp3")
+        sound2 = AudioSegment.from_file("output.mp3", format="mp3")
 
         # region  Crop sound1 to the length of sound2 if sound1 is longer
         if len(sound1) > len(sound2):
@@ -123,12 +100,5 @@ class NoiseAdder:
         sound2 = sound2 - 3  # reduce volume by 3dB
         # Add sound1 and sound2 together
         combined = sound1.overlay(sound2)
-        # Export combined sound as wav file
-        combined.export("output.wav", format="wav")
-
-        with wave.open("output.wav", 'rb') as wav_file:
-            # Read in the data and convert to a byte array
-            data = bytearray(wav_file.readframes(wav_file.getnframes()))
-            # convert data to json
-            json_data = json.dumps(data)
-            return json_data
+        # Export combined sound as mp3 file
+        combined.export("output.mp3", format="mp3")
