@@ -25,12 +25,12 @@ namespace AutomatedPronouncingTrainer.Service
             return content == "true";
         }
 
-        public async Task<bool> SetNoise(string noise)
+        public async Task<byte[]> SetNoise(string noise)
         {
             var response = await httpClient.GetAsync(baseUrl + "set_noise/" + noise);
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsByteArrayAsync();
 
-            return content == "true";
+            return content;
         }
 
         public async Task<bool> SetModel(string model)
@@ -65,14 +65,6 @@ namespace AutomatedPronouncingTrainer.Service
             return models;
         }
 
-        public async Task<bool> Play(string command, bool isRecording)
-        {
-            var response = await httpClient.GetAsync(baseUrl + "play_noise/" + command + "/" + isRecording);
-            var content = await response.Content.ReadAsStringAsync();
-
-            return content == "true";
-        }
-
         /// <summary>
         /// Send record as byte array to server
         /// </summary>
@@ -84,27 +76,6 @@ namespace AutomatedPronouncingTrainer.Service
             var content = await response.Content.ReadFromJsonAsync<RecordingResult>();
 
             return content;
-        }
-
-        public async Task<bool> Record()
-        {
-            var response = await httpClient.GetAsync(baseUrl + "record");
-            var content = await response.Content.ReadAsStringAsync();
-
-            return content == "true";
-        }
-
-        public async Task CancleRecording()
-        {
-            var response = await httpClient.GetAsync(baseUrl + "cancel_record");
-        }
-
-        public async Task<RecordingResult> StopRecording()
-        {
-            var response = await httpClient.GetAsync(baseUrl + "stop_record");
-            var content = await response.Content.ReadAsStringAsync();
-            var result = JsonConvert.DeserializeObject<RecordingResult>(content);
-            return result;
         }
 
         public async Task<string> GetNextAsync()
@@ -141,6 +112,6 @@ namespace AutomatedPronouncingTrainer.Service
         public double Score { get; set; }
 
         [JsonProperty("data")]
-        public string? Data { get; set; }
+        public byte[]? Data { get; set; }
     }
 }

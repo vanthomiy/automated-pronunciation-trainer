@@ -212,6 +212,7 @@
     {
         TextToSpeek = await Service.GetNextAsync();
         SpokenText = "";
+        User.Url = "";
         StateHasChanged();
     }
 

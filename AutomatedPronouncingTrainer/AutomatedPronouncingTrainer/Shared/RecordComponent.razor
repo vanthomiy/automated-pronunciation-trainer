@@ -5,6 +5,7 @@
 @inject UserService User
 
 <audio hidden id="sound" controls src=@User.Url></audio>
+<audio hidden id="sound_noise" controls src=@User.NoiseUrl></audio>
 
 <MudText Class="ma-2" Typo="Typo.h5">@($"Audio: {User.User.Level}")</MudText>
 
@@ -17,10 +18,12 @@
             }
         </MudSelect>
 
-        @if (User.Url != "")
+        @if (User.NoiseUrl != "")
         {
-            <MudIconButton Class="ma-2" Icon="@(User.IsPlaying ? Icons.Material.Filled.StopCircle : Icons.Material.Filled.PlayArrow)" Disabled="@User.IsProcessing" OnClick="@PlayPauseAudio" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
+            <MudIconButton Class="ma-2" Icon="@(User.IsPlayingNoise ? Icons.Material.Filled.StopCircle : Icons.Material.Filled.PlayArrow)" Disabled="@User.IsProcessing" OnClick="@(() => PlayPauseAudio(true))" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
         }
+
+        <MudDivider Class="ma-2" Vertical="true" />
 
         @if (!User.IsRecording)
         {
@@ -35,6 +38,11 @@
         @if (User.IsProcessing)
         {
             <MudProgressCircular Class="ma-2" Color="Color.Primary" Size="Size.Medium" Indeterminate="true" />
+        }
+
+        @if (User.Url != "")
+        {
+            <MudIconButton Class="ma-2" Icon="@(User.IsPlaying ? Icons.Material.Filled.StopCircle : Icons.Material.Filled.PlayArrow)" Disabled="@User.IsProcessing" OnClick="@(() => PlayPauseAudio(false))" Variant="Variant.Filled" Color="Color.Error" Size="Size.Large" />
         }
 
         <MudIconButton Class="ma-2" Icon="@Icons.Material.Filled.Forward" Disabled="@(User.IsProcessing || User.IsRecording)" OnClick="@OnNext" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" />
@@ -58,7 +66,7 @@
         await mJS.InvokeVoidAsync("BlazorAudioPlayer.Initialize", DotNetObjectReference.Create(this));
 
         AvailableNoise = await Service.GetAvailableNoise();
-
+        StateHasChanged();
     }
 
     /// <summary>
@@ -68,8 +76,12 @@
     /// <returns></returns>
     private async Task OnNoiseSelected(string args)
     {
-        await Service.SetNoise(args.ToString());
+        var noise = await Service.SetNoise(args.ToString());
 
+        // make noise (byte array) available to play on User.Url as blob
+        await MakeUrl(noise, true);
+
+        StateHasChanged();
     }
 
     [JSInvokable]
@@ -79,12 +91,29 @@
         await InvokeAsync(() => StateHasChanged());
     }
 
-    void PlayPauseAudio()
+    void PlayPauseAudio(bool isNoise)
     {
-        if (!User.IsPlaying)
-            mJS.InvokeVoidAsync("PlaySound");
-        else
-            mJS.InvokeVoidAsync("StopSound");
+        if ((User.IsPlaying && isNoise) || (User.IsPlayingNoise && !isNoise))
+        {
+            mJS.InvokeVoidAsync("StopSound", !isNoise);
+            mJS.InvokeVoidAsync("PlaySound", isNoise);
+            User.IsPlayingNoise = isNoise;
+            User.IsPlaying = !isNoise;
+        }
+        else if ((User.IsPlaying && !isNoise) || (User.IsPlayingNoise && isNoise))
+        {
+            mJS.InvokeVoidAsync("StopSound", isNoise);
+            User.IsPlayingNoise = false;
+            User.IsPlaying = false;
+        }
+        else if ((!User.IsPlaying && !isNoise) || (!User.IsPlayingNoise && isNoise))
+        {
+            mJS.InvokeVoidAsync("PlaySound", isNoise);
+            User.IsPlayingNoise = isNoise;
+            User.IsPlaying = !isNoise;
+        }
+
+        StateHasChanged();
     }
 
     void RecordAudioStart()
@@ -93,6 +122,7 @@
         User.IsRecording = true;
 
         mJS.InvokeVoidAsync("BlazorAudioRecorder.StartRecord");
+        StateHasChanged();
     }
 
     void RecordAudioStop()
@@ -101,6 +131,7 @@
         User.IsProcessing = true;
 
         mJS.InvokeVoidAsync("BlazorAudioRecorder.StopRecord");
+        StateHasChanged();
     }
 
     void RecordAudioCancel()
@@ -110,6 +141,21 @@
         User.IsProcessing = false;
 
         mJS.InvokeVoidAsync("BlazorAudioRecorder.CancelRecord");
+        StateHasChanged();  
+    }
+
+    private async Task MakeUrl(byte[] data, bool isNoise = false)
+    {
+        // inoke javascript to create url and await
+        var url = await mJS.InvokeAsync<string>("BlazorAudioRecorder.CreateObjectURL", new object[] {data});
+
+        if (isNoise)
+            User.NoiseUrl = url;
+        else
+            User.Url = url;
+
+
+        StateHasChanged();
     }
 
     [JSInvokable]
@@ -120,13 +166,15 @@
         {
             using (HttpResponseMessage response = await client.GetAsync(User.Url, HttpCompletionOption.ResponseHeadersRead))
             {
-                byte[] streamToReadFrom = await response.Content.ReadAsByteArrayAsync();
+                var streamToReadFrom = await response.Content.ReadAsByteArrayAsync();
                 var result = await Service.SendRecordAsync(streamToReadFrom);
 
                 // push audio file (string) to url to play
                 if (result != null)
                 {
                     User.IsProcessing = false;
+                    if (result.Data != null && result.Data.Length > 0)
+                        await MakeUrl(result.Data);
                     OnDataReceived.Invoke(result);
                 }
             }

@@ -10,10 +10,56 @@
         mCaller = vCaller;
     };
 
+
+    BlazorAudioRecorder.StartRecordNew = async function () {
+        mStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const options = {
+            audioBitsPerSecond: 128000
+        };
+
+        mMediaRecorder = new MediaRecorder(stream, options);
+        
+
+        mMediaRecorder.ondataavailable = (e) => {
+            console.log('media available');
+            chunks.push(e.data);
+        };
+
+        mMediaRecorder.addEventListener('error', vError => {
+            console.warn('media recorder error: ' + vError);
+        });
+
+        mMediaRecorder.addEventListener('stop', () => {
+            console.log('media recorder stop');
+            const blob = new Blob(mAudioChunks, { type: "audio/ogg; codecs=opus" });
+            var pAudioUrl = URL.createObjectURL(blob);
+            mCaller.invokeMethodAsync('OnAudioUrl', pAudioUrl);
+        });
+
+        mAudioChunks = [];
+        mMediaRecorder.start();
+    };
+
+
     BlazorAudioRecorder.StartRecord = async function () {
         mStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mMediaRecorder = new MediaRecorder(mStream);
+        const options = {
+            audioBitsPerSecond: 44100,  // 16kbps
+            mimeType: 'audio/webm;codecs=opus'
+        }
+
+        if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            console.error('webm is not Supported');
+            return;
+        }
+        else {
+            console.log('webm is Supported');
+        }
+
+        mMediaRecorder = new MediaRecorder(mStream, options);
+
         mMediaRecorder.addEventListener('dataavailable', vEvent => {
+            console.log('data available');
             mAudioChunks.push(vEvent.data);
         });
 
@@ -22,13 +68,11 @@
         });
 
         mMediaRecorder.addEventListener('stop', () => {
-            var pAudioBlob = new Blob(mAudioChunks, { type: "audio/mp3;" });
-            var pAudioUrl = URL.createObjectURL(pAudioBlob);
+            console.log('media recorder stop');
+            // add wav header to the audio blob
+            const blob = new Blob(mAudioChunks, { type: 'audio/webm;codecs=opus' });
+            var pAudioUrl = URL.createObjectURL(blob);
             mCaller.invokeMethodAsync('OnAudioUrl', pAudioUrl);
-
-            // uncomment the following if you want to play the recorded audio (without the using the audio HTML element)
-            //var pAudio = new Audio(pAudioUrl);
-            //pAudio.play();
         });
 
         mAudioChunks = [];
@@ -36,6 +80,8 @@
     };
 
     BlazorAudioRecorder.StopRecord = function () {
+        console.log('stop recording');
+
         mMediaRecorder.stop();
         mStream.getTracks().forEach(pTrack => pTrack.stop());
     };
@@ -43,4 +89,11 @@
     BlazorAudioRecorder.CancelRecord = function () {
         mMediaRecorder.stop();
     };
+
+    BlazorAudioRecorder.CreateObjectURL = function (vArray) {
+        var pAudioBlob = new Blob([vArray], { type: "audio/wav" });
+        var pAudioUrl = URL.createObjectURL(pAudioBlob);
+        return pAudioUrl;
+    }
+
 })();

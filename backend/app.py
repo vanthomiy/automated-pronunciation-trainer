@@ -1,17 +1,15 @@
 import os
-import wave
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from sound_handler import NoiseAdder, SoundRecorder, SoundPlayer
+from sound_handler import NoiseAdder
 from user_handler import UserHandler
 from whisper_transcriptor import WhisperTranscriptor
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['recorder'] = SoundRecorder('output.wav')
 app.config['transcriptor'] = WhisperTranscriptor()
 app.config['noise'] = NoiseAdder('output.wav')
 
@@ -41,45 +39,6 @@ def next():
     return app.config['user'].get_text()
 
 
-@app.route('/api/record')
-def record():
-    try:
-        app.config['recorder'] = SoundRecorder('output.wav')
-        started = app.config['recorder'].start()
-        return "true" if started else "false"
-    except Exception as e:
-        print(e)
-        return "false"
-
-
-@app.route('/api/stop_record')
-def stop_record():
-    try:
-        app.config['recorder'].stop()
-        print("recording stopped")
-        app.config['noise'].add_noise()
-        print("noise added")
-        text = app.config['transcriptor'].transcript()
-        print("transcripted")
-        score, alignment = app.config['user'].add_history(text)
-        print("history added")
-        # return score and text
-        return jsonify({"score": score, "text": alignment})
-    except Exception as e:
-        print(e)
-        return "-1"
-
-
-@app.route('/api/cancel_record')
-def cancel_record():
-    try:
-        app.config['recorder'].stop()
-        return "true"
-    except Exception as e:
-        print(e)
-        return "false"
-
-
 @app.route('/api/history')
 def history():
     history_data = jsonify(app.config['user'].history)
@@ -98,6 +57,7 @@ def change_level(level):
     app.config['user'].save()
     return "true"
 
+
 @app.route('/api/send_record/', methods=['POST'])
 def send_record():
     """
@@ -111,10 +71,9 @@ def send_record():
         # convert byte string to byte array
         byte_array = bytearray(byte_string)
         # do something with byte_array
+        # save byte_array as mp3 file using pydub
+        app.config['noise'].save_file(byte_array)
 
-        # save audio_data as wav file
-        with open('output.wav', 'wb') as f:
-            f.write(byte_array)
         # add noise to wav file
         noise_file = app.config['noise'].add_noise()
         print("noise added")
@@ -122,11 +81,12 @@ def send_record():
         print("transcripted")
         score, alignment = app.config['user'].add_history(text)
         print("history added")
-        # return score and text
+
         return jsonify({"score": score, "text": alignment, "data": noise_file})
     except Exception as e:
         print(e)
         return "-1"
+
 
 @app.route('/api/noise')
 def get_noise():
@@ -137,24 +97,10 @@ def get_noise():
 @app.route('/api/set_noise/<noise>')
 def set_noise(noise):
     app.config['noise'].selected_noise = noise
-    return "true"
-
-
-@app.route('/api/play_noise/<command>/<is_recording>')
-def play_noise(command, is_recording):
-    if command == "play":
-        wf = app.config['noise'].get_noise()
-        if "True" == is_recording:
-            wf = wave.open('./output.wav', 'rb')
-        app.config['player'] = SoundPlayer(wf)
-        app.config['player'].play = True
-        result = app.config['player'].start()
-        return "true" if result else "false"
-    elif command == "stop":
-        # stop playing noise
-        app.config['player'].play = False
-        app.config['player'].t.join()
-    return "true"
+    if noise == "None":
+        return "None"
+    wf = app.config['noise'].get_noise_array()
+    return wf
 
 
 if __name__ == '__main__':

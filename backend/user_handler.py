@@ -212,7 +212,7 @@ class UserHandler:
         return return_alignment
 
     def save(self):
-        pickle.dump(self, open(f"{self.user_name}.pickle", "wb"))
+        pickle.dump(self, open(f"users/{self.user_name}.pickle", "wb"))
 
     @staticmethod
     def get_user(user_name="user"):
@@ -221,8 +221,8 @@ class UserHandler:
         :return:
         """
 
-        if os.path.exists(f"{user_name}.pickle"):
-            return pickle.load(open(f"{user_name}.pickle", "rb"))
+        if os.path.exists(f"users/{user_name}.pickle"):
+            return pickle.load(open(f"users/{user_name}.pickle", "rb"))
         else:
             return UserHandler(user_name)
 
