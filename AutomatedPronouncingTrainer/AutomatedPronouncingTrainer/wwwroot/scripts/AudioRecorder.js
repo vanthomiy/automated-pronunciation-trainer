@@ -5,6 +5,7 @@
     var mAudioChunks;
     var mMediaRecorder;
     var mCaller;
+    var canceled = false;
 
     BlazorAudioRecorder.Initialize = function (vCaller) {
         mCaller = vCaller;
@@ -68,6 +69,10 @@
         });
 
         mMediaRecorder.addEventListener('stop', () => {
+            if (canceled) {
+                canceled = false;
+                return;
+            }
             console.log('media recorder stop');
             // add wav header to the audio blob
             const blob = new Blob(mAudioChunks, { type: 'audio/webm;codecs=opus' });
@@ -80,6 +85,7 @@
     };
 
     BlazorAudioRecorder.StopRecord = function () {
+        canceled = false;
         console.log('stop recording');
 
         mMediaRecorder.stop();
@@ -87,7 +93,12 @@
     };
 
     BlazorAudioRecorder.CancelRecord = function () {
+        canceled = true;
+        console.log('cancel recording');
+
+
         mMediaRecorder.stop();
+        mStream.getTracks().forEach(pTrack => pTrack.stop());
     };
 
     BlazorAudioRecorder.CreateObjectURL = function (vArray) {
