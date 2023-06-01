@@ -43,6 +43,8 @@ Requirements
 
 These steps should get you up and running with the automated pronunciation trainer project. If you run into any issues or errors, refer to the documentation or raise an issue in the project's repository.
 
+![Blazor UI]([http://url/to/img.png](https://github.com/vanthomiy/automated-pronunciation-trainer/blob/main/documentation/app-screenshot-1.png?raw=true))
+
 ## Possible Improvements
 There are several ways in which the automated pronunciation trainer project could be improved:
 
